@@ -41,16 +41,12 @@ const filterObj = (obj, ...allowedFields) => {
   return newObj;
 };
 
-// ------------------- USER ROUTES -------------------
+// ------------------- USER SELF-ACTIONS -------------------
 
-exports.getAll = catchAsync(async (req, res, next) => {
-  const users = await User.find();
-  res.status(200).json({
-    status: 'success',
-    results: users.length,
-    data: { users },
-  });
-});
+exports.getMe = (req, res, next) => {
+  req.params.id = req.user.id;
+  next();
+};
 
 exports.updateMe = catchAsync(async (req, res, next) => {
   // 1) Block password updates
@@ -86,7 +82,16 @@ exports.deleteMe = catchAsync(async (req, res, next) => {
   });
 });
 
-// ------------------- FACTORY ROUTES -------------------
+// ------------------- ADMIN / FACTORY HANDLERS -------------------
+
+exports.getAll = catchAsync(async (req, res, next) => {
+  const users = await User.find();
+  res.status(200).json({
+    status: 'success',
+    results: users.length,
+    data: { users },
+  });
+});
 
 exports.getOne = factory.getOne(User);
 exports.updateOne = factory.updateOne(User);
@@ -98,3 +103,11 @@ exports.createOne = (req, res) => {
     message: 'This route is not yet defined!',
   });
 };
+
+// ------------------- ALIASES (to match route names) -------------------
+
+exports.getUser = exports.getOne;
+exports.getAllUsers = exports.getAll;
+exports.createUser = exports.createOne;
+exports.updateUser = exports.updateOne;
+exports.deleteUser = exports.deleteOne;

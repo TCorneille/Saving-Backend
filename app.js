@@ -4,11 +4,13 @@ const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
-const xss = require('xss-clean');
+// const xss = require('xss-clean');
 const hpp = require('hpp');
 
 const AppError = require('./Utils/appError');
 const globalErrorHandler = require('./Controllers/errorController');
+const clientRouter = require('./Routes/clientRoutes');
+const adminRouter = require('./Routes/adminRoutes');
 const userRouter = require('./Routes/userRoutes');
 
 const app = express();
@@ -38,10 +40,23 @@ app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
 
 // Data sanitization against NoSQL query injection
-app.use(mongoSanitize());
+
+app.use((req, res, next) => {
+  if (req.body) mongoSanitize.sanitize(req.body);
+  if (req.params) mongoSanitize.sanitize(req.params);
+  if (req.query && typeof req.query === 'object') {
+    // Instead of reassigning req.query, mutate its keys safely
+    Object.keys(req.query).forEach(key => {
+      const value = req.query[key];
+      if (typeof value === 'object') mongoSanitize.sanitize(value);
+    });
+  }
+  next();
+});
+
 
 // Data sanitization against XSS
-app.use(xss());
+// app.use(xss());
 
 // Prevent parameter pollution
 app.use(hpp());
@@ -50,6 +65,8 @@ app.use(hpp());
 app.use(express.static(`${__dirname}/public`));
 
 // ------------------- ROUTES -------------------
+app.use('/api/v1/admin', adminRouter);
+app.use('/api/v1/client', clientRouter);
 app.use('/api/v1/users', userRouter);
 
 // Catch unhandled routes
