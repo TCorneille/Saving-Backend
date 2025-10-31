@@ -1,4 +1,4 @@
-const AppError = require('../utils/appError');
+const AppError = require('../Utils/appError');
 
 // ------------------ SPECIFIC ERROR HANDLERS ------------------
 const handleCastErrorDB = err => {
