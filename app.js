@@ -9,7 +9,7 @@ const hpp = require('hpp');
 
 const AppError = require('./Utils/appError');
 const globalErrorHandler = require('./Controllers/errorController');
-const clientRouter = require('./Routes/clientRoutes');
+const accountRouter= require('./Routes/accountRoutes');
 const adminRouter = require('./Routes/adminRoutes');
 const userRouter = require('./Routes/userRoutes');
 
@@ -66,7 +66,7 @@ app.use(express.static(`${__dirname}/public`));
 
 // ------------------- ROUTES -------------------
 app.use('/api/v1/admin', adminRouter);
-app.use('/api/v1/client', clientRouter);
+app.use('/api/v1/account', accountRouter);
 app.use('/api/v1/users', userRouter);
 
 // Catch unhandled routes
