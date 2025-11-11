@@ -6,7 +6,7 @@ const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 // const xss = require('xss-clean');
 const hpp = require('hpp');
-const cors = require('cors'); // ✅ ADD THIS
+const cors = require('cors'); // ✅ Added CORS
 
 const AppError = require('./Utils/appError');
 const globalErrorHandler = require('./Controllers/errorController');
@@ -18,15 +18,14 @@ const app = express();
 
 // ------------------- GLOBAL MIDDLEWARES -------------------
 
-// ✅ Enable CORS before any routes or other middleware
-app.use(cors({
-  origin: ['http://localhost:5173'], // your frontend dev server
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  credentials: true,
-}));
-
-// ✅ Optional: handle preflight requests
-app.options('*', cors());
+// ✅ Enable CORS (only this line — no app.options needed)
+app.use(
+  cors({
+    origin: ['http://localhost:5173'], // frontend dev server
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    credentials: true,
+  })
+);
 
 // Set security HTTP headers
 app.use(helmet());
@@ -55,7 +54,7 @@ app.use((req, res, next) => {
   if (req.body) mongoSanitize.sanitize(req.body);
   if (req.params) mongoSanitize.sanitize(req.params);
   if (req.query && typeof req.query === 'object') {
-    Object.keys(req.query).forEach(key => {
+    Object.keys(req.query).forEach((key) => {
       const value = req.query[key];
       if (typeof value === 'object') mongoSanitize.sanitize(value);
     });
@@ -83,4 +82,6 @@ app.use((req, res, next) => {
 app.use(globalErrorHandler);
 
 module.exports = app;
+
+
 
