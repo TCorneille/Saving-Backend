@@ -17,12 +17,12 @@ const app = express();
 
 // ------------------- GLOBAL MIDDLEWARES -------------------
 
-// ✅ Enable CORS before any routes
+// ✅ Enable CORS globally (no wildcard paths)
 app.use(
   cors({
     origin: [
-      'http://localhost:5173', // Local development frontend
-      'https://saving-frontend.onrender.com', // Deployed frontend
+      'http://localhost:5173', // Local frontend
+
     ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -30,9 +30,16 @@ app.use(
   })
 );
 
-// ❌ Do NOT use app.options('*', cors()); — not compatible with Express 5
+// ✅ Handle preflight requests safely for all routes
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    return res.sendStatus(204);
+  }
+  next();
+});
 
-// ✅ Set security HTTP headers
+// ✅ Security headers
 app.use(helmet());
 
 // ✅ Development logging
@@ -40,21 +47,21 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// ✅ Limit repeated requests from same IP
+// ✅ Rate limiter
 const limiter = rateLimit({
-  max: 100, // limit each IP to 100 requests per hour
+  max: 100,
   windowMs: 60 * 60 * 1000,
   message: 'Too many requests from this IP, please try again in an hour!',
 });
 app.use('/api', limiter);
 
-// ✅ Parse JSON bodies
+// ✅ Body parser
 app.use(express.json({ limit: '10kb' }));
 
 // ✅ Parse cookies
 app.use(cookieParser());
 
-// ✅ Data sanitization against NoSQL injection
+// ✅ Data sanitization
 app.use((req, res, next) => {
   if (req.body) mongoSanitize.sanitize(req.body);
   if (req.params) mongoSanitize.sanitize(req.params);
@@ -79,7 +86,6 @@ app.use('/api/v1/account', accountRouter);
 app.use('/api/v1/users', userRouter);
 
 // ------------------- HANDLE UNKNOWN ROUTES -------------------
-// (Express 5 compatible)
 app.use((req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
@@ -88,6 +94,3 @@ app.use((req, res, next) => {
 app.use(globalErrorHandler);
 
 module.exports = app;
-
-
-
