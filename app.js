@@ -17,35 +17,38 @@ const app = express();
 
 // ------------------- GLOBAL MIDDLEWARES -------------------
 
-// ✅ Enable CORS globally (no wildcard paths)
-app.use(
-  cors({
-    origin: [
-      'http://localhost:5173', // Local frontend
+// ✅ Main CORS Configuration
+const corsOptions = {
+  origin: [
+    'http://localhost:5173',
+    'https://saving-frontend.vercel.app', // Your production frontend
+  ],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+};
 
-    ],
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-  })
-);
+app.use(cors(corsOptions));
 
-// ✅ Handle preflight requests safely for all routes
+
+// ✅ Fix for Express v5 — proper OPTIONS handling (NO "*")
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
-    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-    return res.sendStatus(204);
+    return cors(corsOptions)(req, res, next);
   }
   next();
 });
 
+
 // ✅ Security headers
 app.use(helmet());
+
 
 // ✅ Development logging
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
+
 
 // ✅ Rate limiter
 const limiter = rateLimit({
@@ -55,40 +58,38 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
+
 // ✅ Body parser
 app.use(express.json({ limit: '10kb' }));
+
 
 // ✅ Parse cookies
 app.use(cookieParser());
 
-// ✅ Data sanitization
-app.use((req, res, next) => {
-  if (req.body) mongoSanitize.sanitize(req.body);
-  if (req.params) mongoSanitize.sanitize(req.params);
-  if (req.query && typeof req.query === 'object') {
-    Object.keys(req.query).forEach((key) => {
-      const value = req.query[key];
-      if (typeof value === 'object') mongoSanitize.sanitize(value);
-    });
-  }
-  next();
-});
+
+// ✅ Data sanitization against NoSQL Injection
+app.use(mongoSanitize());
+
 
 // ✅ Prevent parameter pollution
 app.use(hpp());
 
+
 // ✅ Serve static files
 app.use(express.static(`${__dirname}/public`));
+
 
 // ------------------- ROUTES -------------------
 app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/account', accountRouter);
 app.use('/api/v1/users', userRouter);
 
+
 // ------------------- HANDLE UNKNOWN ROUTES -------------------
 app.use((req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
+
 
 // ------------------- GLOBAL ERROR HANDLER -------------------
 app.use(globalErrorHandler);
