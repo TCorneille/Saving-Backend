@@ -3,7 +3,6 @@ const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
-const mongoSanitize = require('express-mongo-sanitize');
 const hpp = require('hpp');
 const cors = require('cors');
 
@@ -15,23 +14,19 @@ const userRouter = require('./Routes/userRoutes');
 
 const app = express();
 
-// ------------------- GLOBAL MIDDLEWARES -------------------
-
-// ✅ Main CORS Configuration
+// CORS
 const corsOptions = {
   origin: [
     'http://localhost:5173',
-    'https://saving-frontend.vercel.app', // Your production frontend
+    'https://saving-frontend.vercel.app',
   ],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 };
-
 app.use(cors(corsOptions));
 
-
-// ✅ Fix for Express v5 — proper OPTIONS handling (NO "*")
+// Fix for Express v5
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
     return cors(corsOptions)(req, res, next);
@@ -39,18 +34,15 @@ app.use((req, res, next) => {
   next();
 });
 
-
-// ✅ Security headers
+// Security headers
 app.use(helmet());
 
-
-// ✅ Development logging
+// Development logging
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-
-// ✅ Rate limiter
+// Rate limiter
 const limiter = rateLimit({
   max: 100,
   windowMs: 60 * 60 * 1000,
@@ -58,40 +50,31 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
-
-// ✅ Body parser
+// Body parser
 app.use(express.json({ limit: '10kb' }));
 
-
-// ✅ Parse cookies
+// Parse cookies
 app.use(cookieParser());
 
+// ❌ Removed: app.use(mongoSanitize());
 
-// ✅ Data sanitization against NoSQL Injection
-app.use(mongoSanitize());
-
-
-// ✅ Prevent parameter pollution
+// Prevent parameter pollution
 app.use(hpp());
 
-
-// ✅ Serve static files
+// Static files
 app.use(express.static(`${__dirname}/public`));
 
-
-// ------------------- ROUTES -------------------
+// Routes
 app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/account', accountRouter);
 app.use('/api/v1/users', userRouter);
 
-
-// ------------------- HANDLE UNKNOWN ROUTES -------------------
+// Unknown routes
 app.use((req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
 
-
-// ------------------- GLOBAL ERROR HANDLER -------------------
+// Global error handler
 app.use(globalErrorHandler);
 
 module.exports = app;
